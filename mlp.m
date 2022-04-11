@@ -1,17 +1,31 @@
-X = [0 1 0 1; 0 0 1 1];
-Y = [0 0 0 1];
 H = 4;
-I = 2;
-O = 1;
-eta = 0.1;
-maxEpochs = 1000;
-acceptedError = 0.000001;
-activationType = 1; % 0 for sigmoid and 1 for tanh
+I = 6;
+% O = 1;
+% eta = 0.1;
+% maxEpochs = 500;
+% acceptedError = 0.000001;
+% activationType = 0; % 0 for sigmoid and 1 for tanh
+% 
+% [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias]  = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, X, Y);
+% prediction = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, [1;1]);
+% sprintf("%f", prediction)
+% real = 1 & 1
 
-[hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias]  = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, X, Y);
-prediction = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, [1;1]);
-sprintf("%f", prediction)
-real = 1 & 1
+preProcessingConfig.buyingMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
+preProcessingConfig.maintMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
+preProcessingConfig.doorsMap = containers.Map({'2', '3', '4', '5more'}, {2, 3, 4, 5});
+preProcessingConfig.personsMap = containers.Map({'2', '4', 'more'}, {2, 4, 5});
+preProcessingConfig.lugBootMap = containers.Map({'small', 'med', 'big'}, {1, 2, 3});
+preProcessingConfig.safetyMap = containers.Map({'low', 'med', 'high'}, {1, 2, 3});
+preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'}, {1, 2, 3, 4});
+
+data = readData('./data/car.data');
+[X, Y] = preProcessing(data, preProcessingConfig);
+X
+
+function data = readData(dataPath)
+    data = importdata(dataPath, ',');
+end
 
 function Y = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, X)
     k = 1;             
@@ -76,6 +90,8 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
     outputVsHiddenBias = bias_oh;
 end
 
+% This function applies the activation function on the parameter 'value'
+% according with the parameter 'type'
 function f = activation(type, value)
     if(type == 0)
         f = logsig(value);
@@ -84,6 +100,8 @@ function f = activation(type, value)
     end
 end
 
+% This function applies the derivative of activation function on the
+% parameter 'value' according with the parameter 'type'
 function f = activationDerivative(type, value)
     if(type == 0)
         f = logsig(value) - (logsig(value).^2);

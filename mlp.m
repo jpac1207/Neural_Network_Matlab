@@ -2,7 +2,7 @@ H = 6; % Number of hidden layers
 I = 6; % Number of input layers
 O = 4; % Number of output layers
 eta = 0.0001; % Learning Rate
-maxEpochs = 1000; % Number of max epochs
+maxEpochs = 500; % Number of max epochs
 acceptedError = 0.001; % Max accepted error
 activationType = 0; % 0 for sigmoid and 1 for tanh in the hidden layers
 
@@ -17,9 +17,10 @@ preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'},
 data = readData('./data/car.data');
 [X, Y] = preProcessing(data, preProcessingConfig);
 [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y);
-%X
 
-%[hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias]  = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, X', Y);
+
+[hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias]  = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, ...
+    X_train', Y_train, X_val', Y_val);
 % prediction = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, [1;1]);
 % sprintf("%f", prediction)
 % real = 1 & 1
@@ -33,37 +34,41 @@ function Y = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeig
     net_h = hiddenVsInputWeights * X + hiddenVsInputBias * ones(1, size(X, 2));
     Yh = activation(activationType, net_h);
     net_o = outputVsHiddenWeights * Yh + outputVsHiddenBias * ones(1, size (Yh, 2));
-    Y = k * net_o;    
+    Y_net = max(exp(net_o)./sum(exp(net_o)));             
 end
 
-function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias] = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, X, Y)
-    currentEpoch = 1;
-    k = 1;   
-    errors = zeros(maxEpochs, 1);    
+function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias] = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, ...
+    X_train, Y_train, X_val, Y_val)
+    currentEpoch = 1;    
+    errors = zeros(maxEpochs, 1);  
+    validationErrors = zeros(maxEpochs, 1);  
     % Init weights    
     Whi = rand(H, I) - 0.5;
-    bias_hi = rand(H, 1) - 0.5;
-    %bias_hi = rand(H, 1) * 0;
+    bias_hi = rand(H, 1) - 0.5;   
     Woh = rand (O, H) - 0.5;
-    bias_oh = rand(O, 1) - 0.5;
-    %bias_oh = rand(O, 1) * 0;
+    bias_oh = rand(O, 1) - 0.5;    
     
     while currentEpoch <= maxEpochs       
       
-        % Hidden Layer        
-        net_h = Whi * X + bias_hi * ones(1, size(X, 2));
+        % ------- Hidden Layer -------      
+        net_h = Whi * X_train + bias_hi * ones(1, size(X_train, 2));
         Yh = activation(activationType, net_h);    
-        % Output Layer
+        % ------- Output Layer -------
         net_o = Woh * Yh + bias_oh * ones(1, size (Yh, 2));        
         Y_net = exp(net_o)./sum(exp(net_o));                  
-        E = (-1).*sum((Y.*log(Y_net)));    
+        E = (-1).*sum((Y_train.*log(Y_net)));                      
+        %sprintf("%f", E);   
 
-        %E = (-1.*(sum((Y.*log(Y_net)), 'all')))./size(errorMatrix, 2)               
-        sprintf("%f", E);                 
-        df =  (Y-Y_net);
+        % ------- Validation -------
+        val_net_h = Whi * X_val + bias_hi * ones(1, size(X_val, 2));
+        val_Yh = activation(activationType, val_net_h);    
+        val_net_o = Woh * val_Yh + bias_oh * ones(1, size (val_Yh, 2));        
+        val_Y_net = exp(val_net_o)./sum(exp(val_net_o));                  
+        %E_val = (-1).*sum((Y_val.*log(val_Y_net)));  
+        %---------------------------
         
         % backward    
-        %df = errorMatrix;   
+        df =  (Y_train-Y_net);
         %df
         delta_bias_oh = eta * sum((E.*df)')';
         delta_Woh = eta * (E.*df)*Yh';
@@ -71,7 +76,7 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
         
         df = activationDerivative(activationType, net_h);
         delta_bias_hi = (eta) * sum((Eh.*df)')';
-        delta_Whi = (eta) * (Eh.*df) * X';
+        delta_Whi = (eta) * (Eh.*df) * X_train';
         
         %update weights  
         Whi = Whi + delta_Whi;   
@@ -80,16 +85,22 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
         bias_oh = bias_oh + delta_bias_oh;        
    
         %calculate error                          
-        error = sum(((Y .* (1-Y_net))), 'all')/size(Y, 2);        
+        error = sum(((Y_train .* (1-Y_net))), 'all')/size(Y_train, 2);      
+        validationError = sum(((Y_val .* (1-val_Y_net))), 'all')/size(Y_val, 2);  
         %sprintf("%f", error);
         errors(currentEpoch) = error;
-       if(error < acceptedError)
-           break
-       end
+        validationErrors(currentEpoch) = validationError;
+%        if(error < acceptedError)
+%            break
+%        end
        currentEpoch = currentEpoch + 1;
    end 
     
-    plot(errors)
+    plot((1:maxEpochs), errors, '-');
+    hold on;
+    plot((1:maxEpochs), validationErrors, 'x');
+    hold off;
+    
     hiddenVsInputWeights = Whi;
     hiddenVsInputBias = bias_hi;
     outputVsHiddenWeights = Woh;
@@ -106,11 +117,11 @@ function [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y)
     testRows = floor(numberOfRows * testProportion);
 
     randIndexes = randperm(numberOfRows);
-    trainIndexes = randIndexes(1:trainRows)
+    trainIndexes = randIndexes(1:trainRows);
     initOfValRows = (trainRows + 1);
-    valIndexes = randIndexes(initOfValRows:(initOfValRows + valRows))
+    valIndexes = randIndexes(initOfValRows:(initOfValRows + valRows));
     initOfTestRows = (initOfValRows + valRows + 1);
-    testIndexes = randIndexes(initOfTestRows:(initOfTestRows + testRows))
+    testIndexes = randIndexes(initOfTestRows:(initOfTestRows + testRows));
 
     X_train = X(trainIndexes, :);
     Y_train = Y(:, trainIndexes);

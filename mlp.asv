@@ -3,7 +3,7 @@ I = 6; % Number of input layers
 O = 4; % Number of output layers
 eta = 0.0001; % Learning Rate
 maxEpochs = 1000; % Number of max epochs
-activationType = 0; % 0 for sigmoid and 1 for tanh in the hidden layers
+activationType = 1; % 0 for sigmoid and 1 for tanh in the hidden layers
 numberOfTrainings = 10; % number of trainings to get the error means
 
 preProcessingConfig.buyingMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
@@ -17,7 +17,8 @@ preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'},
 % prediction = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, [1;1]);
 % sprintf("%f", prediction)
 % real = 1 & 1
-doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+%doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+doTrainingWithHiddenLayerSizeVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, 5, 15, O, eta, activationType);
 
 function doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType)
     data = readData('./data/car.data');
@@ -40,11 +41,33 @@ function doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, 
     meanFinalErrors = (finalErrors./numberOfTrainings);
     meanFinalValErrors = (finalValErrors./numberOfTrainings);
     bestError
-    plot((1:maxEpochs), meanFinalErrors, '-');
+    meanFinalError = meanFinalErrors(maxEpochs)
+    meanFinalValError = meanFinalValErrors(maxEpochs)
+    plot((1:maxEpochs), meanFinalErrors, 'o');
     hold on;
     plot((1:maxEpochs), meanFinalValErrors, 'x');
     hold off;
-    legend('Média Erros Treinamento', 'Média Erros Validaçã');
+    legend('Média Erros Treinamento', 'Média Erros Validação');
+end
+
+function doTrainingWithHiddenLayerSizeVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, H_init, H_end, O, eta, activationType)
+   H = H_init;
+   while H <= H_end
+    H
+    doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+    H = H+1;
+    pause;
+   end
+end
+
+function doTrainingWithEtaVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta_, activationType)
+   H = H_init;
+   while H <= H_end
+    H
+    doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+    H = H+1;
+    pause;
+   end
 end
 
 function data = readData(dataPath)
@@ -112,9 +135,6 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
         %sprintf("%f", error);
         errors(currentEpoch) = error;
         validationErrors(currentEpoch) = validationError;
-%        if(error < acceptedError)
-%            break
-%        end
        currentEpoch = currentEpoch + 1;
    end     
     

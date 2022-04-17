@@ -1,7 +1,7 @@
-% This function uses the maps in parameter 'preProcessingConfig' to convert each
-% element on parameter 'data' to a correpondent scalar. The returned
-% values are a matrix with the scalars and a array with the last position
-% of 'data' as scalars too.
+% Esta função utiliza os mapas contidos no parâmetro 'preProcessingConfig'
+% de forma a converter cada elemento contido em 'data' para um escalar correpondente. 
+% Os valores de retorno representam os padrões de entrada e de saída
+% convertidos para os escalares respectivos
 function [processedData, processedLabels] = preProcessing(data, preProcessingConfig)    
     dataMatrix = zeros(size(data, 1), size(data, 2));
     labels = zeros(4, size(data, 1));

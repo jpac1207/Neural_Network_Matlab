@@ -1,11 +1,13 @@
-H = 5; % Number of hidden layers
-I = 6; % Number of input layers
-O = 4; % Number of output layers
+% ---------- Parâmetros Gerais ----------
+H = 5; % Número de neurônios na camada escondida
+I = 6; % Número de neurônios na camada de entrada
+O = 4; % Número de neurônios na camada de saída
 eta = 0.0001; % Learning Rate
-maxEpochs = 1000; % Number of max epochs
-activationType = 1; % 0 for sigmoid and 1 for tanh in the hidden layers
-numberOfTrainings = 10; % number of trainings to get the error means
+maxEpochs = 1000; % Número de épocas do treinamento
+activationType = 1; % Flag para escolha de função de ativação dos neurônios escondidos. 0 para sigmoid e 1 para tanh.
+numberOfTrainings = 10; % Número de treinamentos a serem utilizados para computar as médias.
 
+% ---------- Mapas a serem utilizados no pré processamento de dados ----------
 preProcessingConfig.buyingMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
 preProcessingConfig.maintMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
 preProcessingConfig.doorsMap = containers.Map({'2', '3', '4', '5more'}, {2, 3, 4, 5});
@@ -14,14 +16,28 @@ preProcessingConfig.lugBootMap = containers.Map({'small', 'med', 'big'}, {1, 2, 
 preProcessingConfig.safetyMap = containers.Map({'low', 'med', 'high'}, {1, 2, 3});
 preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'}, {1, 2, 3, 4});
 
-% prediction = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, [1;1]);
-% sprintf("%f", prediction)
-% real = 1 & 1
 
-%doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+testRow = 1212;
+predictExampleUsingBestWeights(preProcessingConfig, activationType, testRow);
+
+% ---------- Chamadas de funções para computação de métricas ----------
+
+% Realiza treinamento da MLP 'numberOfTrainings' vezes.
+% doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+
+% Realiza treinamento da MLP 'numberOfTrainings' vezes variando o número de neurônios da camada escondida.
 %doTrainingWithHiddenLayerSizeVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, 5, 15, O, eta, activationType);
-doTrainingWithEtaVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, [0.0001 0.00001 0.000001 0.0000001 0.00000001], activationType)   
 
+% Realiza treinamento da MLP 'numberOfTrainings' vezes variando a taxa de aprendizado.
+%doTrainingWithEtaVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, [0.0001 0.00001 0.000001 0.0000001 0.00000001], activationType)   
+
+% ---------- Implementações das funções de computação de métricas ----------
+
+% Realiza 'numberOfTrainings' treinamentos, obtendo ao final:
+% Melhor erro de treinamento encontrado
+% Média dos erros de treinamento
+% Média dos erros de validação
+% Gráfico com os erros médios por epóca
 function doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType)
     data = readData('./data/car.data');
     [X, Y] = preProcessing(data, preProcessingConfig);
@@ -52,6 +68,11 @@ function doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, 
     legend('Média Erros Treinamento', 'Média Erros Validação');
 end
 
+% Realiza 'numberOfTrainings' treinamentos, variando a quantidade de neurônios da camada escondida ['H_init', 'H_end']. Obtendo ao final:
+% Melhor erro de treinamento encontrado
+% Média dos erros de treinamento
+% Média dos erros de validação
+% Gráfico com os erros médios por epóca
 function doTrainingWithHiddenLayerSizeVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, H_init, H_end, O, eta, activationType)
    H = H_init;
    while H <= H_end
@@ -62,6 +83,11 @@ function doTrainingWithHiddenLayerSizeVariation(preProcessingConfig, maxEpochs, 
    end
 end
 
+% Realiza 'numberOfTrainings' treinamentos, variando a taxa de aprendizado em função dos elementos do vetor 'etas'. Obtendo ao final:
+% Melhor erro de treinamento encontrado
+% Média dos erros de treinamento
+% Média dos erros de validação
+% Gráfico com os erros médios por epóca
 function doTrainingWithEtaVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, etas, activationType)   
    i = 1;  
    while i <= size(etas, 2)
@@ -72,18 +98,48 @@ function doTrainingWithEtaVariation(preProcessingConfig, maxEpochs, numberOfTrai
    end
 end
 
-function data = readData(dataPath)
-    data = importdata(dataPath, ',');
+% Realiza predição do exemplo da linha 'rowOfExample' do dataset,
+% utilizando os pesos salvos no arquivo 'bestWeights.mat', que deve se
+% encontrar no mesmo diretório do arquivo aqui executado
+function predictExampleUsingBestWeights(preProcessingConfig, activationType, rowOfExample)
+    weightsStruct = load('bestWeights.mat');
+    hiddenVsInputWeights = weightsStruct.hiddenVsInputWeights;
+    hiddenVsInputBias = weightsStruct.hiddenVsInputBias;
+    outputVsHiddenWeights = weightsStruct.outputVsHiddenWeights;
+    outputVsHiddenBias = weightsStruct.outputVsHiddenBias;
+    data = readData('./data/car.data');
+    [X, Y] = preProcessing(data, preProcessingConfig);    
+    prediction = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, X(rowOfExample, :)');
+    [~, real] = max(Y(:, rowOfExample));
+    sprintf("Predição: %d", prediction)
+    sprintf("Real: %d", real)
 end
 
-function Y = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, X)
-    k = 1;             
+% Realiza predição da classe de um dado padrão de entrada 'X', utilizando
+% os parâmetros: 
+% hiddenVsInputWeights -> Matriz que representa os pesos aprendidos para as
+% conexões entre 
+function Y = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, X)          
     net_h = hiddenVsInputWeights * X + hiddenVsInputBias * ones(1, size(X, 2));
     Yh = activation(activationType, net_h);
     net_o = outputVsHiddenWeights * Yh + outputVsHiddenBias * ones(1, size (Yh, 2));
-    Y_net = max(exp(net_o)./sum(exp(net_o)));             
+    Y_net = exp(net_o)./sum(exp(net_o));
+    [value, index] = max(Y_net);
+    Y = index;
 end
 
+% Realiza o treinamento da MLP, de acordo com os parametros:
+% I -> Número de neurônios na camada de entrada
+% H -> Número de neurônios na camada escondida
+% O -> Número de neurônios na camada de saída
+% maxEpochs -> Número de epócas do treinamento
+% eta -> Taxa de aprendizado
+% activationType -> Flag utilizada para definir a função de ativação da
+% camada escondida
+% X_train -> Padrões de entrada utilizados durante o treinamento
+% Y_train -> Padrões de saída utilizados durante o treinamento
+% X_val -> Padrões de entrada utilizados na validação
+% Y_val -> Padrões de saída utilizados na validação
 function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, finalErrors, finalValErrors] = trainMLP(I, H, O, maxEpochs, eta, ...
     activationType, X_train, Y_train, X_val, Y_val)
     currentEpoch = 1;    
@@ -102,8 +158,8 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
         Yh = activation(activationType, net_h);    
         % ------- Output Layer -------
         net_o = Woh * Yh + bias_oh * ones(1, size (Yh, 2));        
-        Y_net = exp(net_o)./sum(exp(net_o));                  
-        E = (-1).*sum((Y_train.*log(Y_net)));                      
+        Y_net = exp(net_o)./sum(exp(net_o));   % Aplicação da softmax              
+        E = (-1).*sum((Y_train.*log(Y_net)));  % Computação do erro                   
         %sprintf("%f", E);   
 
         % ------- Validation -------
@@ -148,6 +204,19 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
     outputVsHiddenBias = bias_oh;
 end
 
+% Realiza o carregamento dos dados contidos no arquivo existente no caminho
+% 'dataPath'
+function data = readData(dataPath)
+    data = importdata(dataPath, ',');
+end
+
+% Realiza a divisão dos dados contidos em 'X' e 'Y' em:
+% X_train -> Padrões de entrada a serem utilizados no treino (70%)
+% Y_train -> Padrões de saída a serem utilizados no treino (70%)
+% X_val -> Padrões de entrada a serem utilizados na validação (20%)
+% Y_val -> Padrões de saída a serem utilizados na validação (20%)
+% X_test -> Padrões de entrada a serem utilizados no teste (10%)
+% Y_test -> Padrões de saída a serem utilizados no testw (10%)
 function [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y)
     numberOfRows = size(X, 1);
     trainProportion = 0.7;
@@ -174,8 +243,7 @@ function [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y)
     Y_test = Y(:, testIndexes);
 end
 
-% This function applies the activation function on the parameter 'value'
-% according with the parameter 'type'
+% Aplica uma função de ativação no parâmetro 'value' utilizando a flag 'type'
 function f = activation(type, value)
     if(type == 0)
         f = logsig(value);
@@ -184,8 +252,7 @@ function f = activation(type, value)
     end
 end
 
-% This function applies the derivative of activation function on the
-% parameter 'value' according with the parameter 'type'
+% Computa a derivada de 'value' utilizando a função definida pela flag 'type'
 function f = activationDerivative(type, value)
     if(type == 0)
         f = logsig(value) - (logsig(value).^2);

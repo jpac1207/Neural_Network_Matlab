@@ -1,10 +1,10 @@
-H = 6; % Number of hidden layers
+H = 5; % Number of hidden layers
 I = 6; % Number of input layers
 O = 4; % Number of output layers
 eta = 0.0001; % Learning Rate
-maxEpochs = 500; % Number of max epochs
-acceptedError = 0.001; % Max accepted error
-activationType = 0; % 0 for sigmoid and 1 for tanh in the hidden layers
+maxEpochs = 1000; % Number of max epochs
+activationType = 1; % 0 for sigmoid and 1 for tanh in the hidden layers
+numberOfTrainings = 10; % number of trainings to get the error means
 
 preProcessingConfig.buyingMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
 preProcessingConfig.maintMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
@@ -14,16 +14,40 @@ preProcessingConfig.lugBootMap = containers.Map({'small', 'med', 'big'}, {1, 2, 
 preProcessingConfig.safetyMap = containers.Map({'low', 'med', 'high'}, {1, 2, 3});
 preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'}, {1, 2, 3, 4});
 
-data = readData('./data/car.data');
-[X, Y] = preProcessing(data, preProcessingConfig);
-[X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y);
-
-
-[hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias]  = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, ...
-    X_train', Y_train, X_val', Y_val);
 % prediction = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, activationType, [1;1]);
 % sprintf("%f", prediction)
 % real = 1 & 1
+doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+
+function doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType)
+    data = readData('./data/car.data');
+    [X, Y] = preProcessing(data, preProcessingConfig);
+    [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y);
+    finalErrors = zeros(maxEpochs, 1);  
+    finalValErrors = zeros(maxEpochs, 1);
+    bestError = 1;    
+    
+    for i = 1:numberOfTrainings
+        [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, errors, valErrors]  = trainMLP(I, H, O, maxEpochs, eta, activationType, ...
+            X_train', Y_train, X_val', Y_val);  
+        finalErrors = finalErrors + errors;
+        finalValErrors = finalValErrors + valErrors;
+        if(errors(maxEpochs) < bestError)
+            bestError = errors(maxEpochs);
+            save('bestWeights.mat', 'hiddenVsInputWeights', 'hiddenVsInputBias', 'outputVsHiddenWeights', 'outputVsHiddenBias');
+        end        
+    end
+    meanFinalErrors = (finalErrors./numberOfTrainings);
+    meanFinalValErrors = (finalValErrors./numberOfTrainings);
+    bestError
+    meanFinalErrors(maxEpochs)
+    meanFinalValErrors(maxEpochs)
+    plot((1:maxEpochs), meanFinalErrors, 'o');
+    hold on;
+    plot((1:maxEpochs), meanFinalValErrors, 'x');
+    hold off;
+    legend('Média Erros Treinamento', 'Média Erros Validação');
+end
 
 function data = readData(dataPath)
     data = importdata(dataPath, ',');
@@ -37,8 +61,8 @@ function Y = testMLP(hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeig
     Y_net = max(exp(net_o)./sum(exp(net_o)));             
 end
 
-function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias] = trainMLP(I, H, O, maxEpochs, eta, acceptedError, activationType, ...
-    X_train, Y_train, X_val, Y_val)
+function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, outputVsHiddenBias, finalErrors, finalValErrors] = trainMLP(I, H, O, maxEpochs, eta, ...
+    activationType, X_train, Y_train, X_val, Y_val)
     currentEpoch = 1;    
     errors = zeros(maxEpochs, 1);  
     validationErrors = zeros(maxEpochs, 1);  
@@ -94,13 +118,10 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
 %            break
 %        end
        currentEpoch = currentEpoch + 1;
-   end 
+   end     
     
-    plot((1:maxEpochs), errors, '-');
-    hold on;
-    plot((1:maxEpochs), validationErrors, 'x');
-    hold off;
-    
+    finalErrors = errors;
+    finalValErrors = validationErrors;
     hiddenVsInputWeights = Whi;
     hiddenVsInputBias = bias_hi;
     outputVsHiddenWeights = Woh;

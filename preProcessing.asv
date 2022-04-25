@@ -3,10 +3,10 @@
 % Os valores de retorno representam os padrões de entrada e de saída
 % convertidos para os escalares respectivos
 function [processedData, processedLabels] = preProcessing(data, preProcessingConfig)  
-    rows = size(data, 1);
+    rows = floor(size(data, 1)/2)
     dataMatrix = zeros(rows, size(data, 2));
-    labels = zeros(4, rows);
-    for i = 1:rows        
+    labels = zeros(4, size(data, 1));
+    for i = 1:size(data)        
         cellArray = strsplit(data{i}, ',');        
         buying = preProcessingConfig.buyingMap(cellArray{1});
         maint = preProcessingConfig.maintMap(cellArray{2});

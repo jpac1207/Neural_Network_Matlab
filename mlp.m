@@ -1,11 +1,11 @@
 % ---------- Parâmetros Gerais ----------
-H = 5; % Número de neurônios na camada escondida
+maxEpochs = 1500; % Número de épocas do treinamento
+activationType = 1; % Flag para escolha de função de ativação dos neurônios escondidos. 0 para sigmoid e 1 para tanh.
+numberOfTrainings = 10; % Número de treinamentos a serem utilizad
+H = 15; % Número de neurônios na camada escondida
 I = 6; % Número de neurônios na camada de entrada
 O = 4; % Número de neurônios na camada de saída
-eta = 0.0001; % Learning Rate
-maxEpochs = 1000; % Número de épocas do treinamento
-activationType = 1; % Flag para escolha de função de ativação dos neurônios escondidos. 0 para sigmoid e 1 para tanh.
-numberOfTrainings = 10; % Número de treinamentos a serem utilizados para computar as médias.
+eta = 0.05; % Learning Rateos para computar as médias.
 
 % ---------- Mapas a serem utilizados no pré processamento de dados ----------
 preProcessingConfig.buyingMap = containers.Map({'vhigh', 'high', 'med', 'low'}, {5, 4, 3, 2});
@@ -17,13 +17,13 @@ preProcessingConfig.safetyMap = containers.Map({'low', 'med', 'high'}, {1, 2, 3}
 preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'}, {1, 2, 3, 4});
 
 
-testRow = 1212;
-predictExampleUsingBestWeights(preProcessingConfig, activationType, testRow);
+%testRow = 1212;
+%predictExampleUsingBestWeights(preProcessingConfig, activationType, testRow);
 
 % ---------- Chamadas de funções para computação de métricas ----------
 
 % Realiza treinamento da MLP 'numberOfTrainings' vezes.
-% doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
 
 % Realiza treinamento da MLP 'numberOfTrainings' vezes variando o número de neurônios da camada escondida.
 %doTrainingWithHiddenLayerSizeVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, 5, 15, O, eta, activationType);
@@ -155,19 +155,18 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
       
         % ------- Hidden Layer -------      
         net_h = Whi * X_train + bias_hi * ones(1, size(X_train, 2));
-        Yh = activation(activationType, net_h);    
+        Yh = activation(activationType, net_h);
         % ------- Output Layer -------
-        net_o = Woh * Yh + bias_oh * ones(1, size (Yh, 2));        
+        net_o = Woh * Yh + bias_oh * ones(1, size (Yh, 2));  
         Y_net = exp(net_o)./sum(exp(net_o));   % Aplicação da softmax              
-        E = (-1).*sum((Y_train.*log(Y_net)));  % Computação do erro                   
+        E = ((-1).*sum((Y_train.*log(Y_net))))./size(Y_train, 2);  % Computação do erro                   
         %sprintf("%f", E);   
 
         % ------- Validation -------
         val_net_h = Whi * X_val + bias_hi * ones(1, size(X_val, 2));
         val_Yh = activation(activationType, val_net_h);    
         val_net_o = Woh * val_Yh + bias_oh * ones(1, size (val_Yh, 2));        
-        val_Y_net = exp(val_net_o)./sum(exp(val_net_o));                  
-        %E_val = (-1).*sum((Y_val.*log(val_Y_net)));  
+        val_Y_net = exp(val_net_o)./sum(exp(val_net_o));                          
         %---------------------------
         
         % backward    
@@ -188,7 +187,7 @@ function [hiddenVsInputWeights, hiddenVsInputBias, outputVsHiddenWeights, output
         bias_oh = bias_oh + delta_bias_oh;        
    
         %calculate error                          
-        error = sum(((Y_train .* (1-Y_net))), 'all')/size(Y_train, 2);      
+        error = sum(((Y_train .* (1-Y_net)).^2), 'all')/size(Y_train, 2);     
         validationError = sum(((Y_val .* (1-val_Y_net))), 'all')/size(Y_val, 2);  
         %sprintf("%f", error);
         errors(currentEpoch) = error;
@@ -226,12 +225,12 @@ function [X_train, Y_train, X_val, Y_val, X_test, Y_test] = splitData(X, Y)
     testProportion = 0.1;
     testRows = floor(numberOfRows * testProportion);
 
-    randIndexes = randperm(numberOfRows);
-    trainIndexes = randIndexes(1:trainRows);
+    randIndexes = randperm(numberOfRows);   
+    trainIndexes = randIndexes(1:trainRows);    
     initOfValRows = (trainRows + 1);
-    valIndexes = randIndexes(initOfValRows:(initOfValRows + valRows));
-    initOfTestRows = (initOfValRows + valRows + 1);
-    testIndexes = randIndexes(initOfTestRows:(initOfTestRows + testRows));
+    valIndexes = randIndexes(initOfValRows:(initOfValRows + valRows -1));
+    initOfTestRows = (initOfValRows + valRows);
+    testIndexes = randIndexes(initOfTestRows:(initOfTestRows + testRows-1));
 
     X_train = X(trainIndexes, :);
     Y_train = Y(:, trainIndexes);

@@ -1,7 +1,7 @@
 % ---------- Parâmetros Gerais ----------
 maxEpochs = 1500; % Número de épocas do treinamento
 activationType = 1; % Flag para escolha de função de ativação dos neurônios escondidos. 0 para sigmoid e 1 para tanh.
-numberOfTrainings = 10; % Número de treinamentos a serem utilizad
+numberOfTrainings = 1; % Número de treinamentos a serem utilizad
 H = 15; % Número de neurônios na camada escondida
 I = 6; % Número de neurônios na camada de entrada
 O = 4; % Número de neurônios na camada de saída
@@ -18,12 +18,12 @@ preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'},
 
 
 %testRow = 1212;
-%predictExampleUsingBestWeights(preProcessingConfig, activationType, testRow);
+predictExampleUsingBestWeights(preProcessingConfig, activationType, testRow);
 
 % ---------- Chamadas de funções para computação de métricas ----------
 
 % Realiza treinamento da MLP 'numberOfTrainings' vezes.
-doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
+%doTraining(preProcessingConfig, maxEpochs, numberOfTrainings, I, H, O, eta, activationType);
 
 % Realiza treinamento da MLP 'numberOfTrainings' vezes variando o número de neurônios da camada escondida.
 %doTrainingWithHiddenLayerSizeVariation(preProcessingConfig, maxEpochs, numberOfTrainings, I, 5, 15, O, eta, activationType);

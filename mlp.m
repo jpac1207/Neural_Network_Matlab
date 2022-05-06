@@ -17,7 +17,7 @@ preProcessingConfig.safetyMap = containers.Map({'low', 'med', 'high'}, {1, 2, 3}
 preProcessingConfig.labelMap = containers.Map({'unacc', 'acc', 'good', 'vgood'}, {1, 2, 3, 4});
 
 
-%testRow = 1212;
+testRow = 1152;
 predictExampleUsingBestWeights(preProcessingConfig, activationType, testRow);
 
 % ---------- Chamadas de funções para computação de métricas ----------
